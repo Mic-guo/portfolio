@@ -6,9 +6,12 @@ export class Rope {
     this.physicsWorld = physicsWorld;
     this.ropeMesh = null;
     this.softBody = null;
-    this.ropeSegments = 20; // Reduced segments for easier debugging
+    this.ropeSegments = 60; // Reduced segments for easier debugging
     this.ropeLength = 6;
+    this.initialSegmentLength = this.ropeLength / (this.ropeSegments - 1);
+
     this.debugSpheres = []; // Add debug visualization
+    this.isDragging = false;
 
     this.create();
   }
@@ -41,12 +44,11 @@ export class Rope {
       0
     );
 
-    // Simpler rope parameters for debugging
     const sbConfig = this.softBody.get_m_cfg();
-    sbConfig.set_viterations(10);
-    sbConfig.set_piterations(10);
-    // sbConfig.set_kDP(0.005);
-    // sbConfig.set_kLF(0.05);
+    sbConfig.set_viterations(20);
+    sbConfig.set_piterations(20);
+    sbConfig.set_kDP(0.1);
+    sbConfig.set_kLF(1);
     // sbConfig.set_kSRHR_CL(0.1);
 
     // Only fix the end points
@@ -57,17 +59,17 @@ export class Rope {
     lastNode.set_m_im(0);
 
     this.physicsWorld.addSoftBody(this.softBody, 1, -1);
-    this.softBody.setTotalMass(0.1, false);
+    this.softBody.setTotalMass(1, false);
 
     // Add debug spheres for each node
-    const sphereGeometry = new THREE.SphereGeometry(0.05);
-    const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    // const sphereGeometry = new THREE.SphereGeometry(0.05);
+    // const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
-    for (let i = 0; i < nodes.size(); i++) {
-      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-      this.debugSpheres.push(sphere);
-      this.scene.add(sphere);
-    }
+    // for (let i = 0; i < nodes.size(); i++) {
+    //   const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    //   this.debugSpheres.push(sphere);
+    //   this.scene.add(sphere);
+    // }
 
     // Log the number of nodes for debugging
     console.log("Number of rope nodes:", nodes.size());
@@ -89,12 +91,12 @@ export class Rope {
       this.attachedModel.updatePosition(position);
     }
 
-    // Update debug spheres and log middle node position
-    for (let i = 0; i < nodes.size(); i++) {
-      const node = nodes.at(i);
-      const pos = node.get_m_x();
-      this.debugSpheres[i].position.set(pos.x(), pos.y(), pos.z());
-    }
+    // // Update debug spheres and log middle node position
+    // for (let i = 0; i < nodes.size(); i++) {
+    //   const node = nodes.at(i);
+    //   const pos = node.get_m_x();
+    //   this.debugSpheres[i].position.set(pos.x(), pos.y(), pos.z());
+    // }
 
     // Update rope visualization
     for (let i = 0; i < nodes.size() - 1; i++) {
@@ -110,12 +112,17 @@ export class Rope {
         nextPos.z() - pos.z()
       );
 
+      const currentLength = direction.length();
+
       const quaternion = new THREE.Quaternion();
       const up = new THREE.Vector3(0, 1, 0);
       quaternion.setFromUnitVectors(up, direction.normalize());
 
+      // Since our cylinder geometry is already scaled to segmentLength,
+      // we just need to use the actual length for scaling
+      const scale = new THREE.Vector3(1, currentLength / this.initialSegmentLength, 1);
+
       const matrix = new THREE.Matrix4();
-      const scale = new THREE.Vector3(1, direction.length(), 1);
       matrix.compose(position, quaternion, scale);
       this.ropeMesh.setMatrixAt(i, matrix);
     }
@@ -126,5 +133,13 @@ export class Rope {
   attachModel(model) {
     this.attachedModel = model;
     model.attachToRope(this);
+  }
+
+  setMiddleNodePosition(position) {
+    const nodes = this.softBody.get_m_nodes();
+    const middleNode = nodes.at(Math.floor((nodes.size() - 1) / 2));
+    const pos = new Ammo.btVector3(position.x, position.y, position.z);
+    middleNode.set_m_x(pos);
+    middleNode.set_m_v(new Ammo.btVector3(0, 0, 0)); // Reset velocity
   }
 }

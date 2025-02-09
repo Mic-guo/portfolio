@@ -47,9 +47,17 @@ export class Model {
 
   updatePosition(position) {
     if (this.model) {
-      this.model.position.copy(position);
+      const model_position = new THREE.Vector3(
+        position.x,
+        position.y - 1,
+        position.z
+      );
+      this.model.position.copy(model_position);
       if (this.helper) {
         this.helper.update();
+      }
+      if (this.rope) {
+        this.rope.setMiddleNodePosition(position);
       }
     }
   }
