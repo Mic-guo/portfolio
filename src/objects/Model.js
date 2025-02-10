@@ -36,7 +36,11 @@ export class Model {
       // Apply additional rotation if needed to align model correctly
       const rotationX = new THREE.Quaternion();
       rotationX.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+
+      const rotationY = new THREE.Quaternion();
+      rotationY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
       quaternion.multiply(rotationX);
+      quaternion.multiply(rotationY);
 
       this.model.setRotationFromQuaternion(quaternion);
       if (this.helper) {
@@ -62,17 +66,38 @@ export class Model {
     }
   }
 
-  async load(path) {
+  async load(path, texturePath) {
     return new Promise((resolve, reject) => {
       this.loader.load(
         path,
         (gltf) => {
           this.model = gltf.scene;
+
+          // Add texture if texturePath is provided
+          if (texturePath) {
+            const textureLoader = new THREE.TextureLoader();
+            const texture = textureLoader.load(texturePath);
+
+            // Flip texture 180 degrees
+            texture.center.set(0.5, 0.5); // Set rotation center to middle of texture
+            texture.rotation = Math.PI; // Rotate 180 degrees
+
+            // Apply texture to all meshes in the model
+            this.model.traverse((child) => {
+              if (child.isMesh && child.name == "Plane") {
+                child.material = new THREE.MeshStandardMaterial({
+                  map: texture,
+                  side: THREE.DoubleSide,
+                });
+              }
+            });
+          }
+
           this.model.position.set(0, 2, 0);
           this.model.rotation.set(0, 0, 0);
           this.model.scale.set(0.5, 0.5, 0.5);
-          this.helper = new BoxHelper(this.model, 0xff0000);
-          this.scene.add(this.helper);
+          // this.helper = new BoxHelper(this.model, 0xff0000);
+          // this.scene.add(this.helper);
 
           this.scene.add(this.model);
           console.log("Model added to scene:", this.model);

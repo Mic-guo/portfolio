@@ -12,15 +12,29 @@ export class Rope {
     this.modelSegmentLength = this.ropeSegments / 9;
 
     // this.debugSpheres = []; // Add debug visualization
-    this.allModels = [];
-    this.modelPositions = {};
+    this.allModels = new Map();
+
+    this.textureLoader = new THREE.TextureLoader();
 
     this.create();
   }
 
   create() {
-    // Reuse class properties instead of creating new ones
-    const ropeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+    // Create rope texture
+    const ropeTexture = this.textureLoader.load(
+      "src/textures/white_string.jpg"
+    );
+    ropeTexture.wrapS = THREE.RepeatWrapping;
+    ropeTexture.wrapT = THREE.RepeatWrapping;
+    ropeTexture.repeat.set(1, 4); // Adjust these values to control texture tiling
+
+    // Create material with texture
+    const ropeMaterial = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      map: ropeTexture,
+      bumpMap: ropeTexture, // Optional: adds surface detail
+      bumpScale: 0.1, // Adjust bump intensity
+    });
 
     // Calculate segment length
     const segmentLength = this.ropeLength / (this.ropeSegments - 1);
@@ -80,24 +94,12 @@ export class Rope {
   update() {
     const nodes = this.softBody.get_m_nodes();
 
-    // Need an array of 9 indices
-    this.allModels.forEach((model) => {
-      const node = nodes.at(this.modelPositions[model]);
+    // Fix parameter order in forEach callback
+    this.allModels.forEach((model, nodeIndex) => {
+      const node = nodes.at(nodeIndex);
       const pos = node.get_m_x();
       model.updatePosition(new THREE.Vector3(pos.x(), pos.y(), pos.z()));
     });
-
-    // Get middle node position for attached model
-    // const middleNode = nodes.at(Math.floor((nodes.size() - 1) / 2));
-    // const middlePos = middleNode.get_m_x();
-    // if (this.attachedModel) {
-    //   const position = new THREE.Vector3(
-    //     middlePos.x(),
-    //     middlePos.y(),
-    //     middlePos.z()
-    //   );
-    //   this.attachedModel.updatePosition(position);
-    // }
 
     // // Update debug spheres and log middle node position
     // for (let i = 0; i < nodes.size(); i++) {
@@ -142,18 +144,9 @@ export class Rope {
     this.ropeMesh.instanceMatrix.needsUpdate = true;
   }
 
-  attachModel(model, position) {
-    this.allModels.push(model);
-    this.modelPositions[model] = position;
+  attachModel(model, nodeIndex) {
+    this.allModels.set(nodeIndex, model);
   }
-
-  // setMiddleNodePosition(position) {
-  //   const nodes = this.softBody.get_m_nodes();
-  //   const middleNode = nodes.at(Math.floor((nodes.size() - 1) / 2));
-  //   const pos = new Ammo.btVector3(position.x, position.y, position.z);
-  //   middleNode.set_m_x(pos);
-  //   middleNode.set_m_v(new Ammo.btVector3(0, 0, 0)); // Reset velocity
-  // }
 
   setNodePosition(index, position) {
     const nodes = this.softBody.get_m_nodes();
