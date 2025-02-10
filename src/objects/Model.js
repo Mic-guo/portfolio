@@ -3,37 +3,37 @@ import * as THREE from "three";
 import { AmbientLight, DirectionalLight, BoxHelper, Box3 } from "three";
 
 export class Model {
-  constructor(scene) {
+  constructor(scene, rope, positionOnRope) {
     this.scene = scene;
     this.model = null;
     this.loader = new GLTFLoader();
     this.helper = null;
-    this.rope = null;
-  }
-
-  attachToRope(rope) {
     this.rope = rope;
+    this.positionOnRope = positionOnRope;
   }
 
   update() {
     if (this.model && this.rope) {
       const nodes = this.rope.softBody.get_m_nodes();
-      const lastNode = nodes.at((nodes.size() - 1) / 2);
-      const secondLastNode = nodes.at((nodes.size() - 1) / 2 - 1);
-      const nodePos = lastNode.get_m_x();
-      const prevNodePos = secondLastNode.get_m_x();
+      const prevNode = nodes.at(this.positionOnRope - 1);
+      const node = nodes.at(this.positionOnRope);
+
+      const nodePos = node.get_m_x();
+      const prevNodePos = prevNode.get_m_x();
 
       // Only update rotation
       const direction = new THREE.Vector3(
         nodePos.x() - prevNodePos.x(),
         nodePos.y() - prevNodePos.y(),
-        nodePos.z() - prevNodePos.z()
+        // nodePos.z() - prevNodePos.z()
+        0
       ).normalize();
 
       const quaternion = new THREE.Quaternion();
       const up = new THREE.Vector3(0, 1, 0);
       quaternion.setFromUnitVectors(up, direction);
 
+      // Apply additional rotation if needed to align model correctly
       const rotationX = new THREE.Quaternion();
       rotationX.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
       quaternion.multiply(rotationX);
@@ -49,7 +49,7 @@ export class Model {
     if (this.model) {
       const model_position = new THREE.Vector3(
         position.x,
-        position.y - 1,
+        position.y,
         position.z
       );
       this.model.position.copy(model_position);
@@ -57,7 +57,7 @@ export class Model {
         this.helper.update();
       }
       if (this.rope) {
-        this.rope.setMiddleNodePosition(position);
+        this.rope.setNodePosition(this.positionOnRope, position);
       }
     }
   }

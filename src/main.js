@@ -17,10 +17,10 @@ class App {
     await this.physicsWorld.init();
 
     this.rope = new Rope(this.sceneManager.scene, this.physicsWorld.world);
-    this.model = new Model(this.sceneManager.scene, this.physicsWorld.world);
-    await this.model.load("../src/models/polaroid_model.gltf");
+    this.model = new Model(this.sceneManager.scene, this.rope, 3);
+    await this.model.load("../src/models/only_polaroid_rooted_at_clip.gltf");
 
-    this.rope.attachModel(this.model);
+    this.rope.attachModel(this.model, 3);
 
     this.setupEventListeners();
     this.animate();
@@ -61,7 +61,7 @@ class App {
     // Check if we clicked on the model
     const intersects = raycaster.intersectObject(this.model.model, true);
     if (intersects.length > 0) {
-        this.isDragging = true;
+      this.isDragging = true;
     }
   }
 

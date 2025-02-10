@@ -9,9 +9,11 @@ export class Rope {
     this.ropeSegments = 60; // Reduced segments for easier debugging
     this.ropeLength = 6;
     this.initialSegmentLength = this.ropeLength / (this.ropeSegments - 1);
+    this.modelSegmentLength = this.ropeSegments / 9;
 
-    this.debugSpheres = []; // Add debug visualization
-    this.isDragging = false;
+    // this.debugSpheres = []; // Add debug visualization
+    this.allModels = [];
+    this.modelPositions = {};
 
     this.create();
   }
@@ -33,8 +35,8 @@ export class Rope {
 
     // Create soft body
     const softBodyHelpers = new Ammo.btSoftBodyHelpers();
-    const ropeStart = new Ammo.btVector3(-3, 2, 0);
-    const ropeEnd = new Ammo.btVector3(3, 2, 0);
+    const ropeStart = new Ammo.btVector3(-6, 2, 0);
+    const ropeEnd = new Ammo.btVector3(6, 2, 0);
 
     this.softBody = softBodyHelpers.CreateRope(
       this.physicsWorld.getWorldInfo(),
@@ -45,11 +47,10 @@ export class Rope {
     );
 
     const sbConfig = this.softBody.get_m_cfg();
-    sbConfig.set_viterations(20);
-    sbConfig.set_piterations(20);
-    sbConfig.set_kDP(0.1);
-    sbConfig.set_kLF(1);
-    // sbConfig.set_kSRHR_CL(0.1);
+    sbConfig.set_viterations(20); // Velocity iterations
+    sbConfig.set_piterations(20); // Position iterations
+    sbConfig.set_kDP(0.1); // Damping coefficient
+    sbConfig.set_kLF(100); // Resistance to movement
 
     // Only fix the end points
     const nodes = this.softBody.get_m_nodes();
@@ -79,17 +80,24 @@ export class Rope {
   update() {
     const nodes = this.softBody.get_m_nodes();
 
+    // Need an array of 9 indices
+    this.allModels.forEach((model) => {
+      const node = nodes.at(this.modelPositions[model]);
+      const pos = node.get_m_x();
+      model.updatePosition(new THREE.Vector3(pos.x(), pos.y(), pos.z()));
+    });
+
     // Get middle node position for attached model
-    const middleNode = nodes.at(Math.floor((nodes.size() - 1) / 2));
-    const middlePos = middleNode.get_m_x();
-    if (this.attachedModel) {
-      const position = new THREE.Vector3(
-        middlePos.x(),
-        middlePos.y(),
-        middlePos.z()
-      );
-      this.attachedModel.updatePosition(position);
-    }
+    // const middleNode = nodes.at(Math.floor((nodes.size() - 1) / 2));
+    // const middlePos = middleNode.get_m_x();
+    // if (this.attachedModel) {
+    //   const position = new THREE.Vector3(
+    //     middlePos.x(),
+    //     middlePos.y(),
+    //     middlePos.z()
+    //   );
+    //   this.attachedModel.updatePosition(position);
+    // }
 
     // // Update debug spheres and log middle node position
     // for (let i = 0; i < nodes.size(); i++) {
@@ -120,7 +128,11 @@ export class Rope {
 
       // Since our cylinder geometry is already scaled to segmentLength,
       // we just need to use the actual length for scaling
-      const scale = new THREE.Vector3(1, currentLength / this.initialSegmentLength, 1);
+      const scale = new THREE.Vector3(
+        1,
+        currentLength / this.initialSegmentLength,
+        1
+      );
 
       const matrix = new THREE.Matrix4();
       matrix.compose(position, quaternion, scale);
@@ -130,16 +142,24 @@ export class Rope {
     this.ropeMesh.instanceMatrix.needsUpdate = true;
   }
 
-  attachModel(model) {
-    this.attachedModel = model;
-    model.attachToRope(this);
+  attachModel(model, position) {
+    this.allModels.push(model);
+    this.modelPositions[model] = position;
   }
 
-  setMiddleNodePosition(position) {
+  // setMiddleNodePosition(position) {
+  //   const nodes = this.softBody.get_m_nodes();
+  //   const middleNode = nodes.at(Math.floor((nodes.size() - 1) / 2));
+  //   const pos = new Ammo.btVector3(position.x, position.y, position.z);
+  //   middleNode.set_m_x(pos);
+  //   middleNode.set_m_v(new Ammo.btVector3(0, 0, 0)); // Reset velocity
+  // }
+
+  setNodePosition(index, position) {
     const nodes = this.softBody.get_m_nodes();
-    const middleNode = nodes.at(Math.floor((nodes.size() - 1) / 2));
+    const node = nodes.at(index);
     const pos = new Ammo.btVector3(position.x, position.y, position.z);
-    middleNode.set_m_x(pos);
-    middleNode.set_m_v(new Ammo.btVector3(0, 0, 0)); // Reset velocity
+    node.set_m_x(pos);
+    node.set_m_v(new Ammo.btVector3(0, 0, 0)); // Reset velocity
   }
 }

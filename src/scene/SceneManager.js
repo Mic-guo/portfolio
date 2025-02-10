@@ -31,7 +31,7 @@ export class SceneManager {
   }
 
   setupCamera() {
-    this.camera.position.z = 5;
+    this.camera.position.z = 10;
   }
 
   setupControls() {
