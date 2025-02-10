@@ -19,7 +19,7 @@ export class SceneManager {
     this.setupRenderer();
     this.setupLights();
     this.setupCamera();
-    this.setupControls();
+    // this.setupControls();
   }
 
   setupRenderer() {
@@ -35,7 +35,7 @@ export class SceneManager {
   }
 
   setupCamera() {
-    this.camera.position.z = 10;
+    this.camera.position.z = 9;
   }
 
   setupControls() {
@@ -144,7 +144,7 @@ export class SceneManager {
     // if (this.isGuidedPanning) {
     //   this.updateGuidedPan();
     // }
-    this.controls.update();
+    // this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }

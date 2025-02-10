@@ -73,28 +73,66 @@ export class Model {
         (gltf) => {
           this.model = gltf.scene;
 
-          // Add texture if texturePath is provided
+          // Improve model quality
+          this.model.traverse((child) => {
+            if (child.isMesh) {
+              // Improve geometry
+              if (child.geometry) {
+                child.geometry.computeVertexNormals(); // Ensure smooth shading
+              }
+
+              // Improve materials
+              if (child.material) {
+                child.material.precision = "highp"; // Use high precision materials
+                child.material.flatShading = false; // Use smooth shading
+
+                // Enable shadows
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            }
+          });
+
+          // If there's a texture...
           if (texturePath) {
             const textureLoader = new THREE.TextureLoader();
             const texture = textureLoader.load(texturePath);
 
-            // Flip texture 180 degrees
-            texture.center.set(0.5, 0.5); // Set rotation center to middle of texture
-            texture.rotation = Math.PI; // Rotate 180 degrees
+            // Improve texture quality
+            texture.encoding = THREE.sRGBEncoding;
+            texture.anisotropy = 16; // Improves texture quality at angles
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.generateMipmaps = true;
 
-            // Apply texture to all meshes in the model
+            // Flip texture 180 degrees
+            texture.center.set(0.5, 0.5);
+            texture.rotation = Math.PI;
+
+            // Apply texture and improve material quality
             this.model.traverse((child) => {
               if (child.isMesh && child.name == "Plane") {
                 child.material = new THREE.MeshStandardMaterial({
                   map: texture,
                   side: THREE.DoubleSide,
+                  roughness: 0.5,
+                  metalness: 0.5,
                 });
+
+                // Improve mesh quality
+                child.castShadow = true;
+                child.receiveShadow = true;
+
+                // Ensure proper texture display
+                child.material.needsUpdate = true;
               }
             });
           }
 
+          // Preserve model scale and detail
           this.model.position.set(0, 2, 0);
           this.model.rotation.set(0, 0, 0);
+          // Adjust scale if needed - smaller values might lose detail
           this.model.scale.set(0.5, 0.5, 0.5);
           // this.helper = new BoxHelper(this.model, 0xff0000);
           // this.scene.add(this.helper);
