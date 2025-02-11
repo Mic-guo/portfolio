@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 export class Rope {
-  constructor(scene, physicsWorld) {
+  constructor(scene, physicsWorld, yOffset = 2) {
     this.scene = scene;
     this.physicsWorld = physicsWorld;
     this.ropeMesh = null;
@@ -10,6 +10,7 @@ export class Rope {
     this.ropeLength = 6;
     this.initialSegmentLength = this.ropeLength / (this.ropeSegments - 1);
     this.modelSegmentLength = this.ropeSegments / 9;
+    this.yOffset = yOffset;
 
     // this.debugSpheres = []; // Add debug visualization
     this.allModels = new Map();
@@ -49,8 +50,8 @@ export class Rope {
 
     // Create soft body
     const softBodyHelpers = new Ammo.btSoftBodyHelpers();
-    const ropeStart = new Ammo.btVector3(-6, 2, 0);
-    const ropeEnd = new Ammo.btVector3(6, 2, 0);
+    const ropeStart = new Ammo.btVector3(-8, this.yOffset, 0);
+    const ropeEnd = new Ammo.btVector3(8, this.yOffset, 0);
 
     this.softBody = softBodyHelpers.CreateRope(
       this.physicsWorld.getWorldInfo(),
@@ -74,7 +75,7 @@ export class Rope {
     lastNode.set_m_im(0);
 
     this.physicsWorld.addSoftBody(this.softBody, 1, -1);
-    this.softBody.setTotalMass(1, false);
+    this.softBody.setTotalMass(0.01, false);
 
     // Add debug spheres for each node
     // const sphereGeometry = new THREE.SphereGeometry(0.05);

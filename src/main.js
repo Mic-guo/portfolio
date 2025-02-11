@@ -6,13 +6,16 @@ import * as THREE from "three";
 
 class App {
   constructor() {
-    this.devMode = true;
+    this.devMode = false;
     this.sceneManager = new SceneManager(this.devMode);
     this.physicsWorld = new PhysicsWorld();
+    this.ropes = [];
     this.rope = null;
     this.isDragging = false;
     this.models = [];
     this.activeModel = null;
+    this.modelPerRope = 8;
+    this.modelOnRopeOffset = 7;
     // this.createGuidedPanButton();
   }
 
@@ -53,21 +56,39 @@ class App {
   async init() {
     await this.physicsWorld.init();
 
-    this.rope = new Rope(this.sceneManager.scene, this.physicsWorld.world);
-    this.sceneManager.setRope(this.rope);
-    for (let i = 1; i < 8; i++) {
-      const model = new Model(this.sceneManager.scene, this.rope, i * 7);
-      // await model.load("../src/models/only_polaroid_rooted_at_clip.gltf");
-      if (i == 4) {
-        await model.load(
-          "../src/models/polaroid_with_material.glb",
-          "../src/images/IMG_7142 2.JPG"
+    this.ropes.push(
+      new Rope(this.sceneManager.scene, this.physicsWorld.world, -0.5)
+    );
+    this.ropes.push(
+      new Rope(this.sceneManager.scene, this.physicsWorld.world, 2)
+    );
+    this.ropes.push(
+      new Rope(this.sceneManager.scene, this.physicsWorld.world, 4.5)
+    );
+
+    // Update your animation loop to handle multiple ropes
+    this.ropes.forEach((rope) => {
+      this.sceneManager.setRope(rope); // You might need to modify this to handle multiple ropes
+    });
+    for (let j = 0; j < this.ropes.length; j++) {
+      for (let i = 1; i < this.modelPerRope; i++) {
+        const model = new Model(
+          this.sceneManager.scene,
+          this.ropes[j],
+          i * this.modelOnRopeOffset
         );
-      } else {
-        await model.load("../src/models/polaroid_with_material.glb");
+        // await model.load("../src/models/only_polaroid_rooted_at_clip.gltf");
+        if (i == 4) {
+          await model.load(
+            "../src/models/polaroid_with_material.glb",
+            "../src/images/IMG_7142 2.JPG"
+          );
+        } else {
+          await model.load("../src/models/polaroid_with_material.glb");
+        }
+        this.ropes[j].attachModel(model, i * this.modelOnRopeOffset);
+        this.models.push(model);
       }
-      this.rope.attachModel(model, i * 7);
-      this.models.push(model);
     }
 
     this.setupEventListeners();
@@ -92,7 +113,7 @@ class App {
   animate() {
     requestAnimationFrame(this.animate.bind(this));
     this.physicsWorld.step();
-    this.rope.update();
+    this.ropes.forEach((rope) => rope.update()); // Update all ropes
     this.models.forEach((model) => {
       model.update();
     });

@@ -11,11 +11,12 @@ export class SceneManager {
       1000
     );
     this.renderer = new THREE.WebGLRenderer();
-    // this.renderer.setClearColor(0xffffff);
+    this.renderer.setClearColor(0xf0ebe5);
 
     // Add rope reference
     this.rope = null;
     this.devMode = devMode;
+    this.spotlightMode = false;
 
     // Add spotlight and mouse tracking
     this.spotlight = null;
@@ -44,24 +45,28 @@ export class SceneManager {
   }
 
   setupLights() {
-    // const light = new THREE.DirectionalLight(0xffffff, 1);
-    // light.position.set(0, 5, 5);
-    // this.scene.add(light);
-    this.scene.add(new THREE.AmbientLight(0xf2e0c0, 0.01));
+    if (!this.spotlightMode) {
+      const light = new THREE.DirectionalLight(0xf6f3ef, 0.3);
+      light.position.set(0, 0, 15);
+      this.scene.add(light);
+    } else {
+      // Add spotlight
+      this.spotlight = new THREE.SpotLight(0xffffff, 5); // Increased intensity
+      this.spotlight.angle = Math.PI / 6; // Wider angle for better visibility
+      this.spotlight.penumbra = 0.2; // Softer edges
+      this.spotlight.decay = 1.5;
+      this.spotlight.distance = 30;
+      this.spotlight.castShadow = true;
+      this.spotlight.position.set(0, 0, 5);
 
-    // Add spotlight
-    this.spotlight = new THREE.SpotLight(0xffffff, 5); // Increased intensity
-    this.spotlight.angle = Math.PI / 6; // Wider angle for better visibility
-    this.spotlight.penumbra = 0.2; // Softer edges
-    this.spotlight.decay = 1.5;
-    this.spotlight.distance = 30;
-    this.spotlight.castShadow = true;
-    this.spotlight.position.set(0, 0, 5);
+      // Add spotlight target to scene
+      this.spotlight.target.position.set(0, 0, 0);
+      this.scene.add(this.spotlight.target);
+      this.scene.add(this.spotlight);
+    }
 
-    // Add spotlight target to scene
-    this.spotlight.target.position.set(0, 0, 0);
-    this.scene.add(this.spotlight.target);
-    this.scene.add(this.spotlight);
+    // Increased ambient light to compensate
+    this.scene.add(new THREE.AmbientLight(0xf6f3ef, 1));
   }
 
   setupCamera() {
@@ -171,17 +176,21 @@ export class SceneManager {
   // }
 
   render() {
-    // Lerp the mouse position
-    this.mouse.x += (this.targetMouse.x - this.mouse.x) * this.lerpFactor;
-    this.mouse.y += (this.targetMouse.y - this.mouse.y) * this.lerpFactor;
+    if (this.spotlight) {
+      // Lerp the mouse position
+      this.mouse.x += (this.targetMouse.x - this.mouse.x) * this.lerpFactor;
+      this.mouse.y += (this.targetMouse.y - this.mouse.y) * this.lerpFactor;
 
-    const vector = new THREE.Vector3(this.mouse.x, this.mouse.y, 0.5);
-    vector.unproject(this.camera);
-    const dir = vector.sub(this.camera.position).normalize();
-    const distance = -this.camera.position.z / dir.z;
-    const pos = this.camera.position.clone().add(dir.multiplyScalar(distance));
-    this.spotlight.position.set(pos.x, pos.y, 5);
-    this.spotlight.target.position.set(pos.x, pos.y, 0);
+      const vector = new THREE.Vector3(this.mouse.x, this.mouse.y, 0.5);
+      vector.unproject(this.camera);
+      const dir = vector.sub(this.camera.position).normalize();
+      const distance = -this.camera.position.z / dir.z;
+      const pos = this.camera.position
+        .clone()
+        .add(dir.multiplyScalar(distance));
+      this.spotlight.position.set(pos.x, pos.y, 5);
+      this.spotlight.target.position.set(pos.x, pos.y, 0);
+    }
 
     this.renderer.render(this.scene, this.camera);
   }
