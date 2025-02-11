@@ -138,7 +138,7 @@ export class Model {
           // this.scene.add(this.helper);
 
           this.scene.add(this.model);
-          console.log("Model added to scene:", this.model);
+          console.log("Model added to scene");
           resolve(this.model);
         },
         (progress) => {

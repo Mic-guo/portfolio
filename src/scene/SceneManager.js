@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 export class SceneManager {
-  constructor() {
+  constructor(devMode) {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
       75,
@@ -11,10 +11,17 @@ export class SceneManager {
       1000
     );
     this.renderer = new THREE.WebGLRenderer();
-    this.renderer.setClearColor(0xffffff);
+    // this.renderer.setClearColor(0xffffff);
 
     // Add rope reference
     this.rope = null;
+    this.devMode = devMode;
+
+    // Add spotlight and mouse tracking
+    this.spotlight = null;
+    this.mouse = new THREE.Vector2();
+    this.targetMouse = new THREE.Vector2(); // Add target mouse position
+    this.lerpFactor = 1; // 0-1 (1 is not lerp, close to 0 is more lerp)
 
     this.setupRenderer();
     this.setupLights();
@@ -24,18 +31,41 @@ export class SceneManager {
 
   setupRenderer() {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    if (!this.devMode) {
+      this.renderer.setPixelRatio(window.devicePixelRatio);
+      this.renderer.physicallyCorrectLights = true;
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.renderer.outputEncoding = THREE.sRGBEncoding;
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 1;
+    }
     document.body.appendChild(this.renderer.domElement);
   }
 
   setupLights() {
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(0, 5, 5);
-    this.scene.add(light);
-    this.scene.add(new THREE.AmbientLight(0xd9c8b4));
+    // const light = new THREE.DirectionalLight(0xffffff, 1);
+    // light.position.set(0, 5, 5);
+    // this.scene.add(light);
+    this.scene.add(new THREE.AmbientLight(0xf2e0c0, 0.01));
+
+    // Add spotlight
+    this.spotlight = new THREE.SpotLight(0xffffff, 5); // Increased intensity
+    this.spotlight.angle = Math.PI / 6; // Wider angle for better visibility
+    this.spotlight.penumbra = 0.2; // Softer edges
+    this.spotlight.decay = 1.5;
+    this.spotlight.distance = 30;
+    this.spotlight.castShadow = true;
+    this.spotlight.position.set(0, 0, 5);
+
+    // Add spotlight target to scene
+    this.spotlight.target.position.set(0, 0, 0);
+    this.scene.add(this.spotlight.target);
+    this.scene.add(this.spotlight);
   }
 
   setupCamera() {
-    this.camera.position.z = 9;
+    this.camera.position.z = 8;
   }
 
   setupControls() {
@@ -141,10 +171,24 @@ export class SceneManager {
   // }
 
   render() {
-    // if (this.isGuidedPanning) {
-    //   this.updateGuidedPan();
-    // }
-    // this.controls.update();
+    // Lerp the mouse position
+    this.mouse.x += (this.targetMouse.x - this.mouse.x) * this.lerpFactor;
+    this.mouse.y += (this.targetMouse.y - this.mouse.y) * this.lerpFactor;
+
+    const vector = new THREE.Vector3(this.mouse.x, this.mouse.y, 0.5);
+    vector.unproject(this.camera);
+    const dir = vector.sub(this.camera.position).normalize();
+    const distance = -this.camera.position.z / dir.z;
+    const pos = this.camera.position.clone().add(dir.multiplyScalar(distance));
+    this.spotlight.position.set(pos.x, pos.y, 5);
+    this.spotlight.target.position.set(pos.x, pos.y, 0);
+
     this.renderer.render(this.scene, this.camera);
+  }
+
+  updateMousePosition(event) {
+    // Update target mouse position instead of actual mouse position
+    this.targetMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    this.targetMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   }
 }

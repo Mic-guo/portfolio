@@ -6,7 +6,8 @@ import * as THREE from "three";
 
 class App {
   constructor() {
-    this.sceneManager = new SceneManager();
+    this.devMode = true;
+    this.sceneManager = new SceneManager(this.devMode);
     this.physicsWorld = new PhysicsWorld();
     this.rope = null;
     this.isDragging = false;
@@ -119,6 +120,9 @@ class App {
   }
 
   onMouseMove(event) {
+    // Update spotlight position in SceneManager
+    this.sceneManager.updateMousePosition(event);
+
     if (!this.isDragging || !this.activeModel) return;
 
     const mouse = new THREE.Vector2(

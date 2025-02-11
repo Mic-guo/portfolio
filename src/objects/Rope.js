@@ -63,8 +63,8 @@ export class Rope {
     const sbConfig = this.softBody.get_m_cfg();
     sbConfig.set_viterations(20); // Velocity iterations
     sbConfig.set_piterations(20); // Position iterations
-    sbConfig.set_kDP(0.1); // Damping coefficient
-    sbConfig.set_kLF(100); // Resistance to movement
+    sbConfig.set_kDP(0.001); // Damping coefficient
+    sbConfig.set_kLF(0.001); // Resistance to movement
 
     // Only fix the end points
     const nodes = this.softBody.get_m_nodes();
@@ -85,10 +85,6 @@ export class Rope {
     //   this.debugSpheres.push(sphere);
     //   this.scene.add(sphere);
     // }
-
-    // Log the number of nodes for debugging
-    console.log("Number of rope nodes:", nodes.size());
-    console.log("Middle node index:", Math.floor(nodes.size() / 2));
   }
 
   update() {
